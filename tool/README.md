@@ -1,7 +1,13 @@
 # tool — the cross-check against fit-python-sdk
 
-Hand-written, and the only directory under this package that regeneration does
-not own. Nothing here ships in the published package.
+Hand-written, along with `.github/`: the two directories under this package that
+regeneration does not own.
+
+It does ship in the published package, deliberately. The fixtures it needs are
+already there — pub publishes `test/`, and those five `.fit` files are most of
+the archive — so carrying the four scripts that turn them into a verdict costs
+another 9 KB and means the correctness claim in the README can be rerun by
+whoever is reading it rather than taken on trust.
 
 `cross_check.sh` decodes all five fixtures twice — once with this SDK, once with
 [`garmin/fit-python-sdk`](https://github.com/garmin/fit-python-sdk) — and diffs
