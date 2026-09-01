@@ -9,7 +9,9 @@ name: release
 #      automated publishing.
 #   2. Then, on the package's admin page, enable automated publishing from
 #      GitHub Actions for `glandais/fit-dart-sdk` with the tag pattern
-#      `v{{version}}`.
+#      `v{{version}}`, publishing from `push` events only, and "Require GitHub
+#      Actions environment" set to `pub-dev` — the name the publish job passes
+#      below.
 #
 # After that, publishing a release is `git tag -a v21.215.1 && git push origin
 # v21.215.1`. Like fit-kotlin-sdk's, this workflow is deliberate rather than
@@ -86,6 +88,18 @@ jobs:
     permissions:
       id-token: write # the OIDC token pub.dev authenticates the publish with
     uses: dart-lang/setup-dart/.github/workflows/publish.yml@v1
+    with:
+      # The `pub-dev` environment requires an approval before this job starts,
+      # which is the last point at which a release can still be called off — the
+      # step after it cannot be undone. The environment is also restricted to
+      # `v*` tags, so nothing running on a branch can reach it even if the `if`
+      # above were loosened.
+      #
+      # pub.dev is told the same name under "Require GitHub Actions
+      # environment". It checks the claim in the OIDC token, so this line and
+      # that setting have to agree: change one and the publish fails with an
+      # authentication error rather than publishing from somewhere unapproved.
+      environment: pub-dev
 
   github-release:
     needs: publish

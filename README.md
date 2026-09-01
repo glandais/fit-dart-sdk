@@ -248,9 +248,12 @@ half), `dart test`, `dart pub publish --dry-run`, the cross-check against
 own.
 
 `release.yml` publishes to pub.dev from a `vN.N.N` tag, with OIDC rather than a
-stored credential. It checks the tag against `pubspec.yaml`'s version and reruns
-the whole check before anything is uploaded, because pub.dev never lets a
-version be republished.
+stored credential. Because pub.dev never lets a version be republished, three
+things stand between a tag and an upload: the tag is checked against
+`pubspec.yaml`'s version, the whole check runs again, and the publish job waits
+for a manual approval in the `pub-dev` GitHub environment — which is itself
+restricted to `v*` tags. The approval is the last point at which a release can
+still be called off.
 
 ## License
 
