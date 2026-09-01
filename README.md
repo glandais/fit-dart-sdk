@@ -234,8 +234,23 @@ templates cannot know where the formatter wants to break a line, and pub.dev
 scores an unformatted package down.
 
 Regeneration deletes `*.dart` under the directories it owns and `*.yaml` at the
-root. **`tool/` is hand-written and survives**, as does anything else you add
-outside those directories.
+root. **`tool/` and `.github/` are hand-written and survive**, as does anything
+else you add outside those directories.
+
+## Continuous integration
+
+`check.yml` runs on every push and pull request: `dart analyze --fatal-infos`,
+`dart format --set-exit-if-changed` (the whole tree is generated *and*
+formatted, so this is what catches a regeneration that skipped the second
+half), `dart test`, `dart pub publish --dry-run`, the cross-check against
+`fit-python-sdk`, and an analysis of `lib/` alone on Dart 3.0 — the floor
+`pubspec.yaml` declares, which the dev toolchain is too new to exercise on its
+own.
+
+`release.yml` publishes to pub.dev from a `vN.N.N` tag, with OIDC rather than a
+stored credential. It checks the tag against `pubspec.yaml`'s version and reruns
+the whole check before anything is uploaded, because pub.dev never lets a
+version be republished.
 
 ## License
 

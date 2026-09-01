@@ -1,0 +1,98 @@
+name: check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dart-lang/setup-dart@v1
+
+      - run: dart pub get
+
+      # --fatal-infos because every lint this package trips is a lint it should
+      # not trip: the whole tree is generated, so an info here means a template
+      # needs fixing, not a one-off ignore.
+      - run: dart analyze --fatal-infos --fatal-warnings
+
+      # Generated *and* formatted. A template cannot know where the formatter
+      # wants to break a line, so `dart format .` is the second half of the
+      # regeneration recipe — this is what catches someone skipping it.
+      - run: dart format --output=none --set-exit-if-changed .
+
+      - run: dart test
+
+  # The strongest check the package has, and the one that does not check this
+  # SDK against itself: decode every fixture with fit-python-sdk too and diff
+  # field by field. Kept out of the `check` job so its Python setup does not
+  # slow the SDK matrix down, and so a failure says which of the two it was.
+  cross-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Garmin's own decoder, as the reference side. Pinned by nothing on
+      # purpose: a new FIT SDK release that decodes a fixture differently is
+      # exactly what this job exists to surface.
+      - uses: actions/checkout@v7
+        with:
+          repository: garmin/fit-python-sdk
+          path: fit-python-sdk
+
+      - uses: dart-lang/setup-dart@v1
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      - run: dart pub get
+
+      # Exits non-zero on a real divergence; the five presentation differences
+      # it classifies are listed in tool/README.md.
+      - run: tool/cross_check.sh
+        env:
+          FIT_PYTHON_SDK: ${{ github.workspace }}/fit-python-sdk
+
+  # A release is a `dart pub publish`, and pub validates the package as it goes.
+  # Finding out here that the pubspec lost a field or that an unwanted file
+  # crept into the archive costs a red pull request; finding out during a
+  # release costs a version number, since pub.dev never lets one be reused.
+  publishable:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dart-lang/setup-dart@v1
+      - run: dart pub get
+      - run: dart pub publish --dry-run
+
+  # pubspec.yaml declares `sdk: ^3.0.0`, which is what a consumer resolves
+  # against — the library needs 3.0 for sealed classes, patterns and
+  # DateTime.timestamp(), and nothing newer. The dev toolchain needs more than
+  # that (package:lints 6 wants ^3.8.0), so the floor cannot be exercised with
+  # the dev dependencies in place. Strip them, along with the analysis_options
+  # that pulls package:lints in, and analyze lib/ alone on the oldest SDK the
+  # package claims to support. Without this the constraint is a claim nobody
+  # checks until a consumer on an old SDK cannot resolve.
+  floor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: "3.0"
+
+      - name: Strip the dev toolchain
+        run: |
+          set -euo pipefail
+          sed -i '/^dev_dependencies:/,$d' pubspec.yaml
+          echo '# emptied by the floor check; see .github/workflows/check.yml' > analysis_options.yaml
+
+      - run: dart pub get
+      - run: dart analyze lib

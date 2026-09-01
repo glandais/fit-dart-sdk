@@ -1,0 +1,118 @@
+name: release
+
+# Publishes to pub.dev with OIDC — no long-lived credential is stored here.
+#
+# Two things have to be set up once, on pub.dev, before this can work:
+#
+#   1. The first version has to be published by hand (`dart pub publish` from a
+#      workstation). A package that does not exist yet has nowhere to configure
+#      automated publishing.
+#   2. Then, on the package's admin page, enable automated publishing from
+#      GitHub Actions for `glandais/fit-dart-sdk` with the tag pattern
+#      `v{{version}}`.
+#
+# After that, publishing a release is `git tag -a v21.215.1 && git push origin
+# v21.215.1`. Like fit-kotlin-sdk's, this workflow is deliberate rather than
+# automatic: every release of this SDK follows a regeneration run from `fitgen`,
+# which is an act performed locally, and there is no commit stream carrying
+# enough semantics to decide a version by itself.
+#
+# Note the ordering, which is the opposite of fit-kotlin-sdk's. There the tag is
+# created *after* a successful publish, because a tag pointing at a release that
+# never uploaded is worse than no tag. Here pub.dev binds the OIDC claim to the
+# tag ref, so the tag has to exist first. What stands in for that safety is the
+# `verify` job below: it runs the full check and a publish dry run before the
+# real publish gets a chance to start, and a tag that failed to publish can be
+# deleted and re-pushed — which the version on pub.dev, once accepted, never
+# can be.
+
+on:
+  push:
+    tags:
+      # Three numeric components, always: major.minor follow the FIT profile and
+      # the patch is what a release at an unchanged profile increments. A fourth
+      # component, a `-1` or a stray suffix would be read by pub as a prerelease
+      # that `^21.215.0` excludes, so a fix would never reach a consumer
+      # resolving a range.
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+  # Rehearsal. Run from a branch, `verify` runs and `publish` does not, because
+  # pub.dev only accepts a publish whose OIDC token names a tag.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dart-lang/setup-dart@v1
+
+      # The tag is what pub.dev publishes under; pubspec.yaml is what ends up
+      # inside the archive. Two names for one version is how a package gets
+      # published as 21.215.1 while claiming to be 21.215.0 forever after.
+      - name: Check the tag matches the version in pubspec.yaml
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME#v}"
+          PUBSPEC=$(grep -oP '^version:\s*\K[0-9.]+' pubspec.yaml)
+          if [ "$TAG" != "$PUBSPEC" ]; then
+            echo "::error::tag v$TAG does not match pubspec.yaml version $PUBSPEC"
+            exit 1
+          fi
+          echo "releasing $PUBSPEC"
+
+      - run: dart pub get
+
+      # The same three the `check` workflow runs. Repeated rather than reused:
+      # a release must not be able to go out on the strength of a check that
+      # passed on some earlier commit.
+      - run: dart analyze --fatal-infos --fatal-warnings
+      - run: dart format --output=none --set-exit-if-changed .
+      - run: dart test
+
+      - run: dart pub publish --dry-run
+
+  publish:
+    needs: verify
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      id-token: write # the OIDC token pub.dev authenticates the publish with
+    uses: dart-lang/setup-dart/.github/workflows/publish.yml@v1
+
+  github-release:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # After the publish, not before: a GitHub Release announcing a version
+      # that never reached pub.dev points at nothing installable. Re-runnable —
+      # if this step is what failed, re-running the workflow on the same tag
+      # finds the package already published and only fills in the release.
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo "release $GITHUB_REF_NAME already exists, nothing to create"
+            exit 0
+          fi
+          PROFILE=$(grep -oP 'Profile Version = \K[0-9.]+' lib/fit_dart_sdk.dart | head -1)
+          gh release create "$GITHUB_REF_NAME" \
+            --title "fit_dart_sdk $VERSION" \
+            --generate-notes \
+            --notes "Published to pub.dev as \`fit_dart_sdk $VERSION\`, generated from FIT profile $PROFILE."
