@@ -1,0 +1,39 @@
+name: fit_dart_sdk_demo
+description: >-
+  Browser demo for fit_dart_sdk: decodes a FIT file in the page, with no server
+  and no upload.
+
+# Never published: this is the app behind the GitHub Pages demo, and pub.dev
+# only ever sees the package one directory up.
+publish_to: 'none'
+
+version: 1.0.0
+
+environment:
+  sdk: ^3.6.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # The package this demo exists to show. A path dependency, so the demo always
+  # runs against the working tree rather than the last release.
+  fit_dart_sdk:
+    path: ../
+
+  # Only ever pulled in for its font: Flutter's own icon data references the
+  # Cupertino family, and a build without the package warns about it.
+  cupertino_icons: ^1.0.8
+
+  # The browser APIs Flutter has no wrapper for: the file input, the document
+  # drag-and-drop events, and the anchor that saves the JSON. Web-only, which
+  # this app is.
+  web: ^1.1.0
+
+dev_dependencies:
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/sample-activity.fit

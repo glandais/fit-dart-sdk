@@ -19,6 +19,10 @@ under `lib/` is generated; see [Regenerating](#regenerating).
 - **Off the UI thread, two ways.** `Isolate.run` where it exists, and
   `decodeAsync()` — the same decode, yielding to the event loop every few
   hundred messages — where it does not.
+- **Try it in a browser.** [glandais.github.io/fit-dart-sdk](https://glandais.github.io/fit-dart-sdk/)
+  decodes a FIT file in the page — summary, track, series and every message,
+  with nothing uploaded. It is a Flutter web app; its source is in
+  [`demo/`](demo).
 
 ## Install
 
@@ -245,7 +249,11 @@ formatted, so this is what catches a regeneration that skipped the second
 half), `dart test`, `dart pub publish --dry-run`, the cross-check against
 `fit-python-sdk`, and an analysis of `lib/` alone on Dart 3.0 — the floor
 `pubspec.yaml` declares, which the dev toolchain is too new to exercise on its
-own.
+own. It also builds the demo, which is where a change neither dart2js nor
+dart2wasm accepts would surface: the package itself has no web build of its own.
+
+`gh-pages.yml` builds `demo/` and publishes it to GitHub Pages on every push to
+`main` that touches the demo or the library.
 
 `release.yml` publishes to pub.dev from a `vN.N.N` tag, with OIDC rather than a
 stored credential. Because pub.dev never lets a version be republished, three

@@ -96,3 +96,37 @@ jobs:
 
       - run: dart pub get
       - run: dart analyze lib
+
+  # The demo is an app, not part of the package — but it is the one consumer in
+  # this repository that compiles the SDK for the web, so it is also where a
+  # change that dart2js or dart2wasm cannot accept shows up.
+  demo:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: demo
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - run: flutter pub get
+
+      - run: flutter analyze
+
+      - run: dart format --output=none --set-exit-if-changed .
+
+      # lib/src/profile_labels.dart is derived from the generated SDK sources;
+      # a profile bump that nobody re-derived it from would leave the message
+      # table labelling values with names the profile no longer gives them.
+      - name: The profile labels match the SDK they were derived from
+        run: |
+          dart run tool/gen_profile_labels.dart
+          dart format lib/src/profile_labels.dart
+          git diff --exit-code lib/src/profile_labels.dart
+
+      # Both web compilers: --wasm builds the WebAssembly output and the
+      # JavaScript fallback next to it.
+      - run: flutter build web --wasm

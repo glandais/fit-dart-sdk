@@ -1,0 +1,5 @@
+# The Flutter web demo is not part of the package: it is an app that depends on
+# it, built and published to GitHub Pages by .github/workflows/gh-pages.yml, and
+# it carries its own copy of a test fixture. pub.dev users get the link in the
+# README instead.
+demo/
