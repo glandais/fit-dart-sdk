@@ -18,8 +18,10 @@ jobs:
 
       # --fatal-infos because every lint this package trips is a lint it should
       # not trip: the whole tree is generated, so an info here means a template
-      # needs fixing, not a one-off ignore.
-      - run: dart analyze --fatal-infos --fatal-warnings
+      # needs fixing, not a one-off ignore. The paths are spelled out because
+      # `dart analyze .` would descend into demo/, a Flutter package this job
+      # has no Flutter SDK to resolve; the `demo` job analyzes it instead.
+      - run: dart analyze --fatal-infos --fatal-warnings lib test tool example
 
       # Generated *and* formatted. A template cannot know where the formatter
       # wants to break a line, so `dart format .` is the second half of the
