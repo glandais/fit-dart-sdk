@@ -98,7 +98,7 @@ enum BaseType {
       case BaseType.uint64z:
         return 0;
       case BaseType.sint64:
-        return 9223372036854775807;
+        return sint64Invalid;
       case BaseType.uint64:
         return -1;
     }
@@ -331,3 +331,12 @@ enum BaseType {
     return length;
   }
 }
+
+/// `sint64`'s invalid sentinel, 0x7FFFFFFFFFFFFFFF.
+///
+/// Parsed rather than written out: dart2js refuses an integer literal it cannot
+/// represent exactly, and this one needs 63 bits where a JavaScript number
+/// carries 53 — spelling it out kept the package from compiling for the web at
+/// all. On the VM and on Wasm this is the exact value; compiled to JavaScript
+/// it rounds, as every 64-bit value does there.
+final int sint64Invalid = int.parse('9223372036854775807');
