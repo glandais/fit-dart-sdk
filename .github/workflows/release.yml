@@ -75,8 +75,10 @@ jobs:
 
       # The same three the `check` workflow runs. Repeated rather than reused:
       # a release must not be able to go out on the strength of a check that
-      # passed on some earlier commit.
-      - run: dart analyze --fatal-infos --fatal-warnings
+      # passed on some earlier commit. The paths are spelled out for the same
+      # reason as in `check`: `dart analyze .` would descend into demo/, a
+      # Flutter package this job has no Flutter SDK to resolve.
+      - run: dart analyze --fatal-infos --fatal-warnings lib test tool example
       - run: dart format --output=none --set-exit-if-changed .
       - run: dart test
 
