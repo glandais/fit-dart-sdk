@@ -26,6 +26,9 @@ under `lib/` is generated; see [Regenerating](#regenerating).
 
 ## Install
 
+Published on pub.dev as
+[`fit_dart_sdk`](https://pub.dev/packages/fit_dart_sdk):
+
 ```yaml
 dependencies:
   fit_dart_sdk: ^21.217.0
