@@ -2,7 +2,7 @@
 
 An **unofficial** Dart and Flutter SDK for Garmin's [FIT
 protocol](https://developer.garmin.com/fit) — decode and encode activity,
-workout and course files, with the whole generated profile: 21.217.0.
+workout and course files, with the whole generated profile: 21.218.0.
 
 Garmin ships eight FIT SDKs. Dart is not one of them, so this one is generated
 by [`fitgen`](../fitgen), a rebuilt-from-source copy of Garmin's own code
@@ -31,7 +31,7 @@ Published on pub.dev as
 
 ```yaml
 dependencies:
-  fit_dart_sdk: ^21.217.0
+  fit_dart_sdk: ^21.218.0
 ```
 
 ## Decoding
