@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// The demo's palette, in both schemes, and the small set of colours the
 /// painters read.

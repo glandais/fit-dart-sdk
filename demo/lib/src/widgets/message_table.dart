@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:fit_dart_sdk/fit_dart_sdk.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../field_values.dart';
 import '../theme.dart';
